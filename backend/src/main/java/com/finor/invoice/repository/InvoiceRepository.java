@@ -19,4 +19,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     @Query("SELECT FUNCTION('DATE_FORMAT', i.createdAt, '%Y-%m'), SUM(i.totalAmount), COUNT(i) FROM Invoice i GROUP BY FUNCTION('DATE_FORMAT', i.createdAt, '%Y-%m')")
     List<Object[]> monthlySummary();
+
+
+	List<Invoice> findByStatus(String string);
 }
+
+

@@ -1,36 +1,42 @@
 package com.finor.invoice.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
+import com.finor.invoice.entity.VendorGlMapping;
+import com.finor.invoice.repository.VendorGlMappingRepository;
+
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class GlMappingService {
 
-    public GlResult map(String vendorName, String extractedText) {
+    private final VendorGlMappingRepository vendorMappingRepo;
 
-        String vendor = vendorName == null ? "" : vendorName.toLowerCase();
-        String text = extractedText == null ? "" : extractedText.toLowerCase();
+    public VendorGlMapping findMapping(String vendorName, String extractedText) {
 
-        // ✅ RULES (simple AI mapping rules)
-        if (vendor.contains("uber") || text.contains("trip")) {
-            return new GlResult("6100", "Travel Expense", "Travel Expense", 0.95);
+        String vendor = normalize(vendorName == null ? "" : vendorName);
+        String text = normalize(extractedText == null ? "" : extractedText);
+
+        List<VendorGlMapping> mappings = vendorMappingRepo.findByActiveTrue();
+
+        for (VendorGlMapping m : mappings) {
+            String keyword = normalize(m.getVendorKeyword());
+
+            if (!keyword.isBlank() && (vendor.contains(keyword) || text.contains(keyword))) {
+                return m;
+            }
         }
 
-        if (vendor.contains("amazon") || vendor.contains("aws") || text.contains("cloud")) {
-            return new GlResult("6400", "Cloud Services Expense", "Cloud / Hosting", 0.93);
-        }
-
-        if (vendor.contains("zoho") || text.contains("subscription")) {
-            return new GlResult("6410", "SaaS Subscription", "Software Subscription", 0.92);
-        }
-
-        if (vendor.contains("office") || text.contains("a4") || text.contains("pen") || text.contains("stapler")) {
-            return new GlResult("6200", "Office Supplies Expense", "Office Supplies", 0.90);
-        }
-
-        // Default
-        return new GlResult("6999", "Other Expenses", "Uncategorized", 0.50);
+        return null; // not found
     }
 
-    // ✅ Simple response class
-    public record GlResult(String glCode, String glName, String category, Double confidence) {}
+    private String normalize(String input) {
+        return input.toLowerCase()
+                .replaceAll("[^a-z0-9 ]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
 }

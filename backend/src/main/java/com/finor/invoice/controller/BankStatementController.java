@@ -15,7 +15,6 @@ import com.finor.invoice.entity.BankTransaction;
 @RestController
 @RequestMapping("/api/bank")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class BankStatementController {
 
 	private final BankStatementService bankStatementService;

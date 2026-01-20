@@ -3,6 +3,7 @@ package com.finor.invoice.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -38,8 +39,14 @@ public class Invoice {
 
 	private String glCode;
 	private String glName;
-	/*
-	 * private String category; private Double confidenceScore;
-	 */
+
+	private Long matchedTxnId;
+
+	@Column(length = 1000)
+	private String matchedTxnDesc;
+
+	private Double matchedTxnAmount;
+
+	private LocalDate matchedTxnDate;
 
 }

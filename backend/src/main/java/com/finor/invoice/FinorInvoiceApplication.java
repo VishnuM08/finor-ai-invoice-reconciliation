@@ -8,6 +8,7 @@ public class FinorInvoiceApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(FinorInvoiceApplication.class, args);
+		
 	}
 
 }

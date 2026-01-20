@@ -1,13 +1,17 @@
 package com.finor.invoice.service;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 
+import org.jspecify.annotations.Nullable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.finor.invoice.entity.Invoice;
+import com.finor.invoice.entity.VendorGlMapping;
 import com.finor.invoice.repository.InvoiceRepository;
+import com.finor.invoice.repository.VendorGlMappingRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -21,6 +25,7 @@ public class InvoiceService {
     private final InvoiceParserService parserService;
     private final GlMappingService glMappingService;
     private final ReconciliationService reconciliationService;
+    private final VendorGlMappingRepository vendorMappingRepo;
 
     public Invoice upload(MultipartFile file) throws Exception {
         String path = fileStorageService.save(file);
@@ -36,7 +41,8 @@ public class InvoiceService {
     }
 
     public List<Invoice> getAll() {
-        return invoiceRepository.findAll();
+    	return invoiceRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+
     }
 
     public Invoice extract(Long id) throws Exception {
@@ -58,16 +64,25 @@ public class InvoiceService {
         Invoice invoice = invoiceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Invoice not found"));
 
-        var result = glMappingService.map(invoice.getVendorName(), invoice.getExtractedText());
+        VendorGlMapping mapping = glMappingService.findMapping(
+                invoice.getVendorName(),
+                invoice.getExtractedText()
+        );
 
-        invoice.setGlCode(result.glCode());
-        invoice.setGlName(result.glName());
-        invoice.setCategory(result.category());
-        invoice.setConfidenceScore(result.confidence());
-        invoice.setStatus("MAPPED");
+        if (mapping != null) {
+            invoice.setGlCode(mapping.getGlAccount().getGlCode());
+            invoice.setGlName(mapping.getGlAccount().getGlName());
+            invoice.setCategory(mapping.getGlAccount().getCategory());
+            invoice.setConfidenceScore(1.0);
+            invoice.setStatus("MAPPED");
+        } else {
+            invoice.setStatus("MAPPING_NOT_FOUND");
+            invoice.setConfidenceScore(0.0);
+        }
 
         return invoiceRepository.save(invoice);
     }
+
 
     public Invoice reconcile(Long invoiceId) {
         return reconciliationService.reconcile(invoiceId);
@@ -76,5 +91,25 @@ public class InvoiceService {
     public Invoice getById(Long id){
         return invoiceRepository.findById(id).orElseThrow(() -> new RuntimeException("Invoice not found"));
     }
+
+    public String reconcileAll() {
+        List<Invoice> mappedInvoices = invoiceRepository.findByStatus("MAPPED");
+
+        int total = mappedInvoices.size();
+        int success = 0;
+        int failed = 0;
+
+        for (Invoice inv : mappedInvoices) {
+            Invoice result = reconciliationService.reconcile(inv.getId());
+            if ("RECONCILED".equals(result.getStatus())) success++;
+            else failed++;
+        }
+
+        return "Reconcile completed ✅ Total: " + total +
+                " | Success: " + success +
+                " | Failed: " + failed;
+    }
+
+  
 
 }

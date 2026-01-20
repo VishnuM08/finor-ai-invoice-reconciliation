@@ -16,7 +16,6 @@ import com.finor.invoice.entity.Invoice;
 	@RestController
 	@RequestMapping("/api/invoices")
 	@RequiredArgsConstructor
-	@CrossOrigin(origins = "*")
 	public class InvoiceController {
 	
 	    private final InvoiceService invoiceService;
@@ -62,6 +61,12 @@ import com.finor.invoice.entity.Invoice;
 	                        .build()
 	        );
 	    }
+	    
+	    @PostMapping("/reconcile-all")
+	    public ResponseEntity<String> reconcileAll() {
+	        return ResponseEntity.ok(invoiceService.reconcileAll());
+	    }
+
 
 
 
